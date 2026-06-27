@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>产产造谣器</title>
+  <style>
+:root {
+  color-scheme: dark;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #ffffff;
+  color: #111111;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: #ffffff;
+  color: #111111;
+}
+
+.page-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 28px;
+  padding: 32px;
+}
+
+.control-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  gap: 24px;
+  padding: 24px;
+  border: 1px solid #111111;
+}
+
+.control-label {
+  font-size: 0.95rem;
+  margin: 0 0 12px;
+  letter-spacing: 0.04em;
+}
+
+.radio-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.radio-grid label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.98rem;
+  cursor: pointer;
+}
+
+.radio-grid input {
+  width: 16px;
+  height: 16px;
+  accent-color: #111111;
+}
+
+.action-button {
+  width: 100%;
+  border: 1px solid #111111;
+  background: transparent;
+  color: #111111;
+  padding: 14px 18px;
+  font-size: 0.96rem;
+  cursor: pointer;
+  transition: background 160ms ease, transform 160ms ease;
+}
+
+.action-button:hover {
+  background: #f4f4f4;
+}
+
+.action-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.draw-area {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.slot-row {
+  display: grid;
+  gap: 24px;
+}
+
+.two-columns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.single-column {
+  grid-template-columns: 1fr;
+}
+
+.slot-card {
+  min-height: 190px;
+  padding: 24px;
+  border: 1px solid #111111;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.slot-label {
+  font-size: 0.85rem;
+  color: #444444;
+  letter-spacing: 0.08em;
+  margin-bottom: 18px;
+}
+
+.slot-value {
+  font-size: 1.55rem;
+  text-align: center;
+  line-height: 1.4;
+  min-height: 3.5rem;
+}
+
+.bottom-area {
+  display: flex;
+  justify-content: center;
+}
+
+.hidden {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+@media (max-width: 850px) {
+  .page-shell {
+    grid-template-columns: 1fr;
+    padding: 20px;
+  }
+
+  .slot-row {
+    gap: 20px;
+  }
+}
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <aside class="control-panel">
+      <div class="control-group">
+        <p class="control-label">期别选择</p>
+        <div class="radio-grid">
+          <label><input type="radio" name="period" value="全部" checked /><span>全部</span></label>
+          <label><input type="radio" name="period" value="二期生" /><span>二期生</span></label>
+          <label><input type="radio" name="period" value="三期生" /><span>三期生</span></label>
+          <label><input type="radio" name="period" value="四期生" /><span>四期生</span></label>
+        </div>
+      </div>
+      <button id="startButton" class="action-button">开始抽签</button>
+    </aside>
+
+    <main class="draw-area">
+      <div class="slot-row two-columns">
+        <div class="slot-card">
+          <div class="slot-label">左位</div>
+          <div id="leftSlot" class="slot-value">—</div>
+        </div>
+        <div class="slot-card">
+          <div class="slot-label">右位</div>
+          <div id="rightSlot" class="slot-value">—</div>
+        </div>
+      </div>
+      <div class="slot-row single-column">
+        <div class="slot-card">
+          <div class="slot-label">设定</div>
+          <div id="settingSlot" class="slot-value">—</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+const nameData = {
+  "二期生": ["远藤光莉", "大园玲", "大沼晶保", "幸阪茉里乃", "武元唯衣", "田村保乃", "藤吉夏铃", "增本绮良", "松田里奈", "森田光", "守屋丽奈", "山崎天"],
+  "三期生": ["石森璃花", "远藤理子", "小田仓丽奈", "小岛凪纱", "谷口爱季", "中嶋优月", "的野美青", "向井纯叶", "村井优", "村山美羽", "山下瞳月"],
+  "四期生": ["浅井恋乃未", "稻熊ひな", "胜又春", "佐藤爱樱", "中川智寻", "松本和子", "目黑阳色", "山川宇衣", "山田桃实"]
+};
+
+const settingData = [
+  "军队", "末世", "童话", "武士", "忍者", "西幻", "西欧", "都市", "学姐学妹", "职场", "日恐", "大逃杀", "公路片", "克苏鲁", "无限流", "娱乐圈", "规则怪谈", "霍格沃兹", "赛博朋克", "豪门", "电竞", "海盗", "黑道", "花魁", "君臣", "君将", "魅魔", "偶像", "人鱼", "赛车", "杀手", "师生", "伪骨", "网红", "妖怪", "医患", "乐队", "包养","前任", "炮友", "失忆", "重生","穿越", "性转", "花吐症","吐真剂","替身","天降","白月光", "出租屋", "死对头","年龄操作", "契约伴侣", "青梅竹马", "史密斯夫妇", "魔法少女","不xx就出不去的房间","共感", "灵魂互换","好感度可视化","捡手机"
+];
+
+const leftSlot = document.getElementById('leftSlot');
+const rightSlot = document.getElementById('rightSlot');
+const settingSlot = document.getElementById('settingSlot');
+const startButton = document.getElementById('startButton');
+const periodRadios = document.querySelectorAll('input[name="period"]');
+
+let animationTimers = [];
+let isRunning = false;
+
+function getCurrentPool() {
+  const selected = Array.from(periodRadios).find(radio => radio.checked)?.value;
+  if (selected === '全部') {
+    return [...nameData['二期生'], ...nameData['三期生'], ...nameData['四期生']];
+  }
+  return nameData[selected] ? [...nameData[selected]] : [];
+}
+
+function randomChoice(array) {
+  return array[Math.floor(Math.random() * array.length)];
+}
+
+function pickDistinctPair(pool) {
+  if (pool.length < 2) {
+    const first = randomChoice(pool);
+    return [first, first];
+  }
+  const firstIndex = Math.floor(Math.random() * pool.length);
+  const first = pool[firstIndex];
+  const secondPool = pool.filter((_, index) => index !== firstIndex);
+  const second = randomChoice(secondPool);
+  return [first, second];
+}
+
+function animateSlot(targetElement, sourceArray, intervalMs) {
+  return setInterval(() => {
+    targetElement.textContent = randomChoice(sourceArray);
+  }, intervalMs);
+}
+
+function setButtonState(running) {
+ ; startButton.disabled = running;
+  periodRadios.forEach(radio => {
+    radio.disabled = running;
+  });
+}
+
+function startDraw() {
+  if (isRunning) return;
+  isRunning = true;
+  setButtonState(true);
+
+  const pool = getCurrentPool();
+  const [leftName, rightName] = pickDistinctPair(pool);
+  const settingValue = randomChoice(settingData);
+
+  const duration = 1700;
+  const startTime = Date.now();
+
+  leftSlot.textContent = '抽取中';
+  rightSlot.textContent = '抽取中';
+  settingSlot.textContent = '抽取中';
+
+  const leftTimer = animateSlot(leftSlot, pool, 60);
+  const rightTimer = animateSlot(rightSlot, pool, 70);
+  const settingTimer = animateSlot(settingSlot, settingData, 80);
+
+  animationTimers = [leftTimer, rightTimer, settingTimer];
+
+  const stopTimer = setTimeout(() => {
+    animationTimers.forEach(clearInterval);
+    leftSlot.textContent = leftName;
+    rightSlot.textContent = rightName;
+    settingSlot.textContent = settingValue;
+    isRunning = false;
+    setButtonState(false);
+  animationTimers = [];
+  }, duration);
+
+  animationTimers.push(stopTimer);
+}
+
+startButton.addEventListener('click', startDraw);
+  </script>
+</body>
+</html>
